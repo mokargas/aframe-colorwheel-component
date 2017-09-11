@@ -26,14 +26,14 @@ For [A-Frame](https://aframe.io).
 | wheelSize         | Size (m)  if the color wheel element. Note: This will determine the UI size automatically and assumes a a square element     |  0.4 (40cm)             |
 | showSelection         | Show the color-selected circle (top left corner of UI)    |  true              |
 | selectionSize         | Size (m) of the selection circle, if enabled    |  0.10 (10cm)              |
-| showHexValue         | Show the color as a hex value (Note: output only for the moment)    |  false        
+| showHexValue         | Show the color as a hex value (Note: currently output only)    |  false  |
+
 
 ### Installation
 
 #### Browser
 
 * Install and use by directly including the [browser files](dist):
-
 * Create a listener component to listen for changes
 
 ```html

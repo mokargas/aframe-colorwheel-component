@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>A-Frame Colorwheel Component: Sky Change Example</title>
+    <meta name="description" content="A-Frame Colorwheel">
+    <script src="https://aframe.io/releases/0.6.1/aframe.min.js"></script>
+    <script src="../../dist/aframe-colorwheel-component.js"></script>
+    <script type="text/javascript">
+       //Example of using the color wheel with events
+       AFRAME.registerComponent('color-listener', {
+         init: function(){
+           const el = this.el;
+           document.body.addEventListener('didchangecolor', function(evt){
+
+              //Available return formats from colorwheel
+              let style = evt.detail.style
+              let rgb = evt.detail.rgb
+              let hsv = evt.detail.hsv
+              let hex = evt.detail.hex
+
+              console.log(hex)
+              el.setAttribute('color', hex)
+           })
+         }
+       })
+    </script>
+  </head>
+  <body>
+    <a-scene>
+      <a-assets>
+        <img src="images/floor.jpg" alt="Floor" id="floor">
+      </a-assets>
+      <a-entity laser-controls="hand: right"></a-entity>
+      <a-entity laser-controls="hand: left"></a-entity>
+      <a-entity>
+        <a-camera raycaster look-controls-enabled wasd-controls-enabled>
+          <a-entity cursor="rayOrigin: mouse"></a-entity>
+        </a-camera>
+      </a-entity>
+      <a-colorwheel position="-1.578 1 -2.5" rotation="0 21.601 0" showhexvalue="true"></a-colorwheel>
+      <a-sky color="#6EBAA7" color-listener></a-sky>
+      <a-entity id="ground" geometry="primitive: box; width: 20; height: 0.01; depth: 20" material="src: #floor;" position="0 0 -4"></a-entity>
+
+    </a-scene>
+
+  </body>
+</html>

@@ -39,7 +39,7 @@ AFRAME.registerComponent('colorwheel', {
       type: 'number',
       default: 0.10
     },
-    showHexValue:{
+    showHexValue: {
       type: 'boolean',
       default: false
     }
@@ -76,7 +76,7 @@ AFRAME.registerComponent('colorwheel', {
     this.backgroundWidth = this.backgroundHeight = this.data.wheelSize * 2
 
     //Check if we have the a-rounded component
-    if(AFRAME.components.hasOwnProperty('rounded')){
+    if (AFRAME.components.hasOwnProperty('rounded')) {
       this.background = document.createElement('a-rounded')
       this.background.setAttribute('radius', 0.02)
       this.background.setAttribute('position', {
@@ -167,10 +167,24 @@ AFRAME.registerComponent('colorwheel', {
     })
 
     //Show hex value display
-    if(this.data.showHexValue){
+    if (this.data.showHexValue) {
+      let hexValueHeight = 0.30
+      let hexValueWidth = 2
+
       this.hexValueText = document.createElement('a-text')
       this.hexValueText.setAttribute('value', '')
-      this.hexValueText.width = this.data.wheelSize
+      this.hexValueText.setAttribute('material', defaultMaterial)
+      this.hexValueText.setAttribute('width', hexValueWidth)
+      this.hexValueText.setAttribute('height', hexValueHeight)
+      this.hexValueText.setAttribute('align', 'center')
+      this.hexValueText.setAttribute('wrapCount', '8')
+      this.hexValueText.setAttribute('color', '#666')
+      this.hexValueText.setAttribute('position', {
+        x: this.data.wheelSize - this.brightnessSliderWidth - padding / 3,
+        y: this.data.wheelSize + padding / 2,
+        z: 0.01
+      })
+
       this.el.appendChild(this.hexValueText)
     }
 
@@ -260,7 +274,7 @@ AFRAME.registerComponent('colorwheel', {
 
   },
   initColorWheel: function() {
-    let colorWheel = this.colorWheel.getObject3D('mesh')
+    const colorWheel = this.colorWheel.getObject3D('mesh')
     const vertexShader = `
 
       varying vec2 vUv;
@@ -357,6 +371,7 @@ AFRAME.registerComponent('colorwheel', {
   updateColor: function() {
     let rgb = this.hsvToRgb(this.hsv)
     let color = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`
+    let hex = `#${new THREE.Color( color ).getHexString()}`
 
     const selectionEl = this.selectionEl.getObject3D('mesh'),
       colorCursor = this.colorCursor.getObject3D('mesh'),
@@ -370,7 +385,7 @@ AFRAME.registerComponent('colorwheel', {
     }
 
     //Change cursor colors based on brightness
-    if(this.hsv.v >= 0.5){
+    if (this.hsv.v >= 0.5) {
       this.setColorTween(colorCursor.material, colorCursor.material.color, new THREE.Color(0x000000))
       this.setColorTween(brightnessCursor.material, brightnessCursor.material.color, new THREE.Color(0x000000))
     } else {
@@ -378,12 +393,17 @@ AFRAME.registerComponent('colorwheel', {
       this.setColorTween(brightnessCursor.material, brightnessCursor.material.color, new THREE.Color(0xFFFFFF))
     }
 
+    //If we have showHexValue set to true, update text
+    if (this.data.showHexValue) {
+      this.hexValueText.setAttribute('value', hex)
+    }
+
     //Notify listeners the color has changed.
     let eventDetail = {
       style: color,
       rgb: rgb,
       hsv: this.hsv,
-      hex: `#${new THREE.Color( color ).getHexString()}`
+      hex: hex
     };
 
     Event.emit(this.el, 'changecolor', eventDetail)
@@ -457,6 +477,7 @@ AFRAME.registerPrimitive('a-colorwheel', {
     backgroundcolor: 'colorwheel.backgroundColor',
     showselection: 'colorwheel.showSelection',
     wheelsize: 'colorwheel.wheelSize',
-    selectionsize: 'colorwheel.selectionSize'
+    selectionsize: 'colorwheel.selectionSize',
+    showhexvalue: 'colorwheel.showHexValue'
   }
 });
