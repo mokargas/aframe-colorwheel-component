@@ -90,17 +90,23 @@ AFRAME.registerComponent('colorwheel', {
     if(AFRAME.components.hasOwnProperty('rounded')){
       this.background = document.createElement('a-rounded')
       this.background.setAttribute('radius', 0.02)
+      this.background.setAttribute('position', {
+        x: -(this.data.wheelSize + padding),
+        y: -(this.data.wheelSize + padding),
+        z: -0.001
+      })
     } else {
-      this.background = document.createElement('a-entity')
+      this.background = document.createElement('a-plane')
+      this.background.setAttribute('position', {
+        x: 0,
+        y: 0,
+        z: -0.001
+      })
     }
     console.debug(this.background)
     this.background.setAttribute('width', this.backgroundWidth + 2 * padding)
     this.background.setAttribute('height', this.backgroundHeight + 2 * padding)
-    this.background.setAttribute('position', {
-      x: -(this.data.wheelSize + padding),
-      y: -(this.data.wheelSize + padding),
-      z: -0.001
-    })
+
     this.background.setAttribute('side', 'double')
     this.el.appendChild(this.background)
 

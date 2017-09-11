@@ -52,7 +52,7 @@ if (process.env.NODE_ENV === 'production') {
 
 module.exports = {
   devServer: {
-    port: 3333,
+    port: 7001,
     watchOptions:{
       aggregateTimeout: 300,
       poll: 1000

@@ -28,7 +28,7 @@ Install and use by directly including the [browser files](dist):
 
 <body>
   <a-scene>
-    <a-entity colorwheel="foo: bar"></a-entity>
+    <a-entity colorwheel></a-entity>
   </a-scene>
 </body>
 ```
