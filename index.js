@@ -103,10 +103,9 @@ AFRAME.registerComponent('colorwheel', {
         z: -0.001
       })
     }
-    console.debug(this.background)
     this.background.setAttribute('width', this.backgroundWidth + 2 * padding)
     this.background.setAttribute('height', this.backgroundHeight + 2 * padding)
-
+    this.background.setAttribute('material', 'shader', 'flat')
     this.background.setAttribute('side', 'double')
     this.el.appendChild(this.background)
 
