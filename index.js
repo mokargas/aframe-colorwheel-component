@@ -128,10 +128,7 @@ AFRAME.registerComponent('colorwheel', {
         let value = that.hexValueText.getAttribute('value')
 
         //Copy value to clipboard
-        copy(value, {
-          debug: true,
-          message: 'Press #{key} to copy',
-        })
+        copy(value)
       })
 
       this.el.appendChild(this.hexValueText)
