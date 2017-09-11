@@ -4,6 +4,7 @@
  */
 
 const Event = require('./src/utils')
+import copy from 'copy-to-clipboard'
 
 AFRAME.registerComponent('colorwheel', {
   dependencies: ['raycaster'],
@@ -74,6 +75,8 @@ AFRAME.registerComponent('colorwheel', {
     //Background color of this interface
     //TODO: Expose sizing for deeper customisation?
     this.backgroundWidth = this.backgroundHeight = this.data.wheelSize * 2
+    this.brightnessSliderHeight = (this.data.wheelSize + padding) * 2
+    this.brightnessSliderWidth = 0.10
 
     //Check if we have the a-rounded component
     if (AFRAME.components.hasOwnProperty('rounded')) {
@@ -98,6 +101,42 @@ AFRAME.registerComponent('colorwheel', {
     this.background.setAttribute('side', 'double')
     this.el.appendChild(this.background)
 
+    //Show hex value display
+    if (this.data.showHexValue) {
+      let hexValueHeight = 0.30
+      let hexValueWidth = 2
+
+      this.hexValueText = document.createElement('a-text')
+      this.hexValueText.setAttribute('value', '')
+
+      //required for interactions
+      this.hexValueText.setAttribute('geometry', 'primitive', 'plane')
+      this.hexValueText.setAttribute('material', defaultMaterial)
+      this.hexValueText.setAttribute('material', 'opacity', 0)
+      this.hexValueText.setAttribute('width', hexValueWidth)
+      this.hexValueText.setAttribute('height', hexValueHeight)
+      this.hexValueText.setAttribute('align', 'center')
+      this.hexValueText.setAttribute('wrapCount', '8')
+      this.hexValueText.setAttribute('color', '#666')
+      this.hexValueText.setAttribute('position', {
+        x: this.data.wheelSize - this.brightnessSliderWidth - padding / 3,
+        y: this.data.wheelSize + padding / 2,
+        z: 0.0
+      })
+
+      this.hexValueText.addEventListener('click', function(){
+        let value = that.hexValueText.getAttribute('value')
+
+        //Copy value to clipboard
+        copy(value, {
+          debug: true,
+          message: 'Press #{key} to copy',
+        })
+      })
+
+      this.el.appendChild(this.hexValueText)
+    }
+
     //Circle for colorwheel
     this.colorWheel = document.createElement('a-circle')
     this.colorWheel.setAttribute('radius', this.data.wheelSize)
@@ -105,14 +144,11 @@ AFRAME.registerComponent('colorwheel', {
     this.colorWheel.setAttribute('position', {
       x: 0,
       y: 0,
-      z: 0
+      z: 0.001
     })
     this.el.appendChild(this.colorWheel)
 
     //Plane for the brightness slider
-    //TODO: Expose height and width for customisation?
-    this.brightnessSliderHeight = (this.data.wheelSize + padding) * 2
-    this.brightnessSliderWidth = 0.10
 
     this.brightnessSlider = document.createElement('a-plane')
     this.brightnessSlider.setAttribute('width', this.brightnessSliderWidth)
@@ -121,7 +157,7 @@ AFRAME.registerComponent('colorwheel', {
     this.brightnessSlider.setAttribute('position', {
       x: this.data.wheelSize + this.brightnessSliderWidth,
       y: 0,
-      z: 0
+      z: 0.001
     })
     this.el.appendChild(this.brightnessSlider)
 
@@ -166,27 +202,6 @@ AFRAME.registerComponent('colorwheel', {
       z: 0
     })
 
-    //Show hex value display
-    if (this.data.showHexValue) {
-      let hexValueHeight = 0.30
-      let hexValueWidth = 2
-
-      this.hexValueText = document.createElement('a-text')
-      this.hexValueText.setAttribute('value', '')
-      this.hexValueText.setAttribute('material', defaultMaterial)
-      this.hexValueText.setAttribute('width', hexValueWidth)
-      this.hexValueText.setAttribute('height', hexValueHeight)
-      this.hexValueText.setAttribute('align', 'center')
-      this.hexValueText.setAttribute('wrapCount', '8')
-      this.hexValueText.setAttribute('color', '#666')
-      this.hexValueText.setAttribute('position', {
-        x: this.data.wheelSize - this.brightnessSliderWidth - padding / 3,
-        y: this.data.wheelSize + padding / 2,
-        z: 0.01
-      })
-
-      this.el.appendChild(this.hexValueText)
-    }
 
     //Handlers
     this.bindMethods()
