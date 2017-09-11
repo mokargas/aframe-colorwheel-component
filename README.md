@@ -5,7 +5,7 @@
 
 A-Frame Color Wheel component, designed to be used with A-Frame Material
 
-*Note: A-Frame Material is not required to use this component*
+***NOTE: A-Frame Material is not required to use this component***
 
 For [A-Frame](https://aframe.io).
 
@@ -19,7 +19,11 @@ For [A-Frame](https://aframe.io).
 
 | Property | Description | Default Value |
 | -------- | ----------- | ------------- |
-|          |             |               |
+| disabled         | Wether the color wheel responds to clicks or taps            |  false              |
+| backgroundcolor         | Background color of the UI        |  #fff              |
+| wheelSize         | Size (m)  if the color wheel element     |  0.4 (40cm)             |
+| showSelection         | Show the color-selected circle (top left corner of UI)    |  true              |
+| selectionSize         | Size (m) of the selection circle, if enabled    |  0.10 (10cm)              |
 
 ### Installation
 
@@ -66,3 +70,8 @@ Then require and use.
 require('aframe');
 require('aframe-colorwheel-component');
 ```
+
+#### TODO / Roadmap
+
+* Deeper customisation (padding, background colors, shader style)
+* Interop testing

@@ -17,21 +17,9 @@ AFRAME.registerComponent('colorwheel', {
   },
   color: '#ffffff',
   schema: {
-    value: {
-      type: 'string',
-      default: ''
-    },
-    name: {
-      type: 'string',
-      default: ''
-    },
     disabled: {
       type: 'boolean',
       default: false
-    },
-    color: {
-      type: 'color',
-      default: '#000'
     },
     backgroundColor: {
       type: 'color',
@@ -456,10 +444,7 @@ AFRAME.registerPrimitive('a-colorwheel', {
     colorwheel: {}
   },
   mappings: {
-    value: 'colorwheel.value',
-    name: 'colorwheel.name',
     disabled: 'colorwheel.disabled',
-    color: 'colorwheel.color',
     backgroundcolor: 'colorwheel.backgroundColor',
     showselection: 'colorwheel.showSelection',
     wheelsize: 'colorwheel.wheelSize',
