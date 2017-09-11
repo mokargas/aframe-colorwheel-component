@@ -38,6 +38,10 @@ AFRAME.registerComponent('colorwheel', {
     selectionSize: {
       type: 'number',
       default: 0.10
+    },
+    showHexValue:{
+      type: 'boolean',
+      default: false
     }
   },
   //Util to animate between positions. Item represents a mesh or object containing a position
@@ -161,6 +165,14 @@ AFRAME.registerComponent('colorwheel', {
       y: this.brightnessSliderHeight / 2,
       z: 0
     })
+
+    //Show hex value display
+    if(this.data.showHexValue){
+      this.hexValueText = document.createElement('a-text')
+      this.hexValueText.setAttribute('value', '')
+      this.hexValueText.width = this.data.wheelSize
+      this.el.appendChild(this.hexValueText)
+    }
 
     //Handlers
     this.bindMethods()
@@ -350,7 +362,6 @@ AFRAME.registerComponent('colorwheel', {
       colorCursor = this.colorCursor.getObject3D('mesh'),
       brightnessCursor = this.brightnessCursor.getObject3D('mesh')
 
-
     //Update indicator element of selected color
     if (this.data.showSelection) {
       //Uncomment for no tweens: selectionEl.material.color.set(color)
@@ -365,20 +376,18 @@ AFRAME.registerComponent('colorwheel', {
     } else {
       this.setColorTween(colorCursor.material, colorCursor.material.color, new THREE.Color(0xFFFFFF))
       this.setColorTween(brightnessCursor.material, brightnessCursor.material.color, new THREE.Color(0xFFFFFF))
-
     }
 
     //Notify listeners the color has changed.
-    Event.emit(this.el, 'changecolor', {
+    let eventDetail = {
       style: color,
       rgb: rgb,
-      hsv: this.hsv
-    })
-    Event.emit(document.body, 'didchangecolor', {
-      style: color,
-      rgb: rgb,
-      hsv: this.hsv
-    })
+      hsv: this.hsv,
+      hex: `#${new THREE.Color( color ).getHexString()}`
+    };
+
+    Event.emit(this.el, 'changecolor', eventDetail)
+    Event.emit(document.body, 'didchangecolor', eventDetail)
 
   },
   hsvToRgb: function(hsv) {
