@@ -5,7 +5,15 @@
 
 A-Frame Color Wheel component, designed to be used with A-Frame Material
 
+*Note: A-Frame Material is not required to use this component*
+
 For [A-Frame](https://aframe.io).
+
+![Example of Colorwheel](https://raw.githubusercontent.com/mokargas/aframe-colorwheel-component/master/examples/acwc.gif "Example of Colorwheel")
+
+### Examples
+
+* [Basic](https://mokargas.github.io/aframe-colorwheel-component/examples/basic)
 
 ### API
 
@@ -22,7 +30,7 @@ Install and use by directly including the [browser files](dist):
 ```html
 <head>
   <title>My A-Frame Scene</title>
-  <script src="https://aframe.io/releases/0.6.0/aframe.min.js"></script>
+  <script src="https://aframe.io/releases/0.6.1/aframe.min.js"></script>
   <script src="https://unpkg.com/aframe-colorwheel-component/dist/aframe-colorwheel-component.min.js"></script>
 </head>
 

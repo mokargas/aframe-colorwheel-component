@@ -1,7 +1,4 @@
 /**
- * A-FRAME Material
- * @author Etienne Pinchon epinchon@student.42.us.org
- *
  * Colorwheel for A-FRAME Material
  * @author Mo Kargas (DEVLAD) mo@devlad.com
  */
