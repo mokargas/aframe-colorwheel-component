@@ -113,6 +113,7 @@ AFRAME.registerComponent('colorwheel', {
     //Show Swatches
     if(this.data.showSwatches) this.generateSwatches(this.data.swatches)
 
+
     //Show hex value display
     if (this.data.showHexValue) {
       let hexValueHeight = 0.1,
@@ -131,7 +132,7 @@ AFRAME.registerComponent('colorwheel', {
       this.hexValueText.setAttribute('position', {
         x: - this.brightnessSliderWidth ,
         y: this.data.wheelSize + hexValueHeight,
-        z: 0.02
+        z: 0.0
       })
 
       this.hexValueText.setAttribute('material', 'opacity', 0)
@@ -197,6 +198,7 @@ AFRAME.registerComponent('colorwheel', {
       cursorSegments: 32,
       cursorColor: new THREE.Color(0x000000)
     }
+
     this.colorCursorOptions.cursorMaterial = new THREE.MeshBasicMaterial({
       color: this.colorCursorOptions.cursorColor,
       transparent: true
@@ -241,20 +243,44 @@ AFRAME.registerComponent('colorwheel', {
   generateSwatches: function(swatchData){
     //Generate clickable swatch elements from a given array
     if(swatchData === undefined ) return
-    
+
     const that = this,
-          containerWidth = (this.data.wheelSize + padding) * 2,
-          containerHeight = 0.15
+          containerWidth = (this.data.wheelSize + this.padding) * 2,
+          containerHeight = 0.15,
+          swatchWidth = containerWidth/5
 
     //create container
-    this.swatchContainer = document.createElement('a-entity')
+    this.swatchContainer = document.createElement('a-plane')
+    this.swatchContainer.setAttribute('width', containerWidth)
+    this.swatchContainer.setAttribute('height', containerHeight)
     this.swatchContainer.setAttribute('material', this.defaultMaterial)
+    this.swatchContainer.setAttribute('material', 'shader', 'flat')
+    this.swatchContainer.setAttribute('position', {
+      x: 0,
+      y: -this.backgroundHeight + containerHeight,
+      z: 0.03
+    })
+    this.swatchContainer.setAttribute('rotation', {x: -30, y: 0, z: 0})
+
+    swatchData.forEach(function(color, i) {
+        let swatch = document.createElement('a-plane')
+
+        swatch.setAttribute('material', that.defaultMaterial)
+        swatch.setAttribute('material', 'shader', 'flat')
+        swatch.setAttribute('width', swatchWidth)
+        swatch.setAttribute('height', containerHeight)
+        swatch.setAttribute('color', color)
+        swatch.setAttribute('class', 'swatch')
+        swatch.setAttribute('position', {
+          x: -(containerWidth - swatchWidth)/2 + i * swatchWidth,
+          y:0,
+          z:0.001 //prevent z-fighting
+        })
+        that.swatchContainer.appendChild(swatch)
+    })
+
     this.el.appendChild(this.swatchContainer)
 
-    swatchData.forEach(function(color) {
-      let c = color.replace('#','')
-      let backgroundColor = new THREE.Color(c)
-    })
 
   },
   bindMethods: function() {
@@ -441,10 +467,9 @@ AFRAME.registerComponent('colorwheel', {
       this.setColorTween(brightnessCursor.material, brightnessCursor.material.color, new THREE.Color(0xFFFFFF))
     }
 
-    //If we have showHexValue set to true, update text
-    if (this.data.showHexValue) {
-      this.hexValueText.setAttribute('text', 'value', hex)
-    }
+    //showHexValue set to true, update text
+    if (this.data.showHexValue) this.hexValueText.setAttribute('text', 'value', hex)
+
 
     //Notify listeners the color has changed.
     let eventDetail = {
@@ -526,6 +551,8 @@ AFRAME.registerPrimitive('a-colorwheel', {
     showselection: 'colorwheel.showSelection',
     wheelsize: 'colorwheel.wheelSize',
     selectionsize: 'colorwheel.selectionSize',
-    showhexvalue: 'colorwheel.showHexValue'
+    showhexvalue: 'colorwheel.showHexValue',
+    showswatches: 'colorwheel.showSwatches',
+    swatches: 'colorwheel.swatches'
   }
 });
