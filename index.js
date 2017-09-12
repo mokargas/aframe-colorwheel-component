@@ -103,32 +103,39 @@ AFRAME.registerComponent('colorwheel', {
 
     //Show hex value display
     if (this.data.showHexValue) {
-      let hexValueHeight = 0.30
-      let hexValueWidth = 2
+      let hexValueHeight = 0.1
+      let hexValueWidth = 2 * (this.data.wheelSize + padding)
 
-      this.hexValueText = document.createElement('a-text')
-      this.hexValueText.setAttribute('value', '')
+      this.hexValueText = document.createElement('a-entity')
 
-      //required for interactions
-      this.hexValueText.setAttribute('geometry', 'primitive', 'plane')
+      //A basic geo is required for interactions
+      this.hexValueText.setAttribute('geometry', {
+        primitive: 'plane',
+        width: hexValueWidth - this.brightnessSliderWidth,
+        height:hexValueHeight
+      })
+
       this.hexValueText.setAttribute('material', defaultMaterial)
-      this.hexValueText.setAttribute('material', 'opacity', 0)
-      this.hexValueText.setAttribute('width', hexValueWidth)
-      this.hexValueText.setAttribute('height', hexValueHeight)
-      this.hexValueText.setAttribute('align', 'center')
-      this.hexValueText.setAttribute('wrapCount', '8')
-      this.hexValueText.setAttribute('color', '#666')
       this.hexValueText.setAttribute('position', {
-        x: this.data.wheelSize - this.brightnessSliderWidth - padding / 3,
-        y: this.data.wheelSize + padding / 2,
+        x: - this.brightnessSliderWidth ,
+        y: this.data.wheelSize + hexValueHeight,
         z: 0.0
       })
 
-      this.hexValueText.addEventListener('click', function(){
-        let value = that.hexValueText.getAttribute('value')
+      this.hexValueText.setAttribute('material', 'opacity', 0)
+      this.hexValueText.setAttribute('text', {
+        width: hexValueWidth,
+        height: hexValueHeight,
+        align : 'right',
+        baseline: 'center',
+        wrapCount: 20.4,
+        color: '#666'
+      })
 
-        //Copy value to clipboard
-        copy(value)
+      //Copy value to clipboard on click
+      this.hexValueText.addEventListener('click', function(){
+        let textEl = that.hexValueText.getAttribute('text')
+        copy(textEl.value)
       })
 
       this.el.appendChild(this.hexValueText)
@@ -407,7 +414,7 @@ AFRAME.registerComponent('colorwheel', {
 
     //If we have showHexValue set to true, update text
     if (this.data.showHexValue) {
-      this.hexValueText.setAttribute('value', hex)
+      this.hexValueText.setAttribute('text', 'value', hex)
     }
 
     //Notify listeners the color has changed.
