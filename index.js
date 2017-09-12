@@ -16,6 +16,13 @@ AFRAME.registerComponent('colorwheel', {
     s: 0.0,
     v: 1.0
   },
+  defaultMaterial: {
+    color: '#ffffff',
+    flatShading: true,
+    transparent: true,
+    fog: false,
+    side: 'double'
+  },
   color: '#ffffff',
   schema: {
     disabled: {
@@ -43,6 +50,14 @@ AFRAME.registerComponent('colorwheel', {
     showHexValue: {
       type: 'boolean',
       default: false
+    },
+    showSwatches: {
+      type: 'boolean',
+      default: false
+    },
+    swatches: {
+      type: 'array',
+      default: ['#000000', '#FFFFFF', '#ff0000', '#007dff', '#ffed00']
     }
   },
   //Util to animate between positions. Item represents a mesh or object containing a position
@@ -64,13 +79,7 @@ AFRAME.registerComponent('colorwheel', {
   init: function() {
     const that = this,
       padding = this.padding,
-      defaultMaterial = {
-        color: '#ffffff',
-        flatShading: true,
-        transparent: true,
-        fog: false,
-        side: 'double'
-      }
+      defaultMaterial = this.defaultMaterial
 
     //Background color of this interface
     //TODO: Expose sizing for deeper customisation?
@@ -101,10 +110,13 @@ AFRAME.registerComponent('colorwheel', {
     this.background.setAttribute('side', 'double')
     this.el.appendChild(this.background)
 
+    //Show Swatches
+    if(this.data.showSwatches) this.generateSwatches(this.data.swatches)
+
     //Show hex value display
     if (this.data.showHexValue) {
-      let hexValueHeight = 0.1
-      let hexValueWidth = 2 * (this.data.wheelSize + padding)
+      let hexValueHeight = 0.1,
+          hexValueWidth = 2 * (this.data.wheelSize + padding)
 
       this.hexValueText = document.createElement('a-entity')
 
@@ -119,7 +131,7 @@ AFRAME.registerComponent('colorwheel', {
       this.hexValueText.setAttribute('position', {
         x: - this.brightnessSliderWidth ,
         y: this.data.wheelSize + hexValueHeight,
-        z: 0.0
+        z: 0.02
       })
 
       this.hexValueText.setAttribute('material', 'opacity', 0)
@@ -153,7 +165,6 @@ AFRAME.registerComponent('colorwheel', {
     this.el.appendChild(this.colorWheel)
 
     //Plane for the brightness slider
-
     this.brightnessSlider = document.createElement('a-plane')
     this.brightnessSlider.setAttribute('width', this.brightnessSliderWidth)
     this.brightnessSlider.setAttribute('height', this.brightnessSliderHeight)
@@ -206,7 +217,6 @@ AFRAME.registerComponent('colorwheel', {
       z: 0
     })
 
-
     //Handlers
     this.bindMethods()
 
@@ -228,7 +238,25 @@ AFRAME.registerComponent('colorwheel', {
 
     }, 5)
   },
+  generateSwatches: function(swatchData){
+    //Generate clickable swatch elements from a given array
+    if(swatchData === undefined ) return
+    
+    const that = this,
+          containerWidth = (this.data.wheelSize + padding) * 2,
+          containerHeight = 0.15
 
+    //create container
+    this.swatchContainer = document.createElement('a-entity')
+    this.swatchContainer.setAttribute('material', this.defaultMaterial)
+    this.el.appendChild(this.swatchContainer)
+
+    swatchData.forEach(function(color) {
+      let c = color.replace('#','')
+      let backgroundColor = new THREE.Color(c)
+    })
+
+  },
   bindMethods: function() {
     this.el.initColorWheel = this.initColorWheel.bind(this)
     this.el.initBrightnessSlider = this.initBrightnessSlider.bind(this)
@@ -236,6 +264,7 @@ AFRAME.registerComponent('colorwheel', {
     this.el.onHueDown = this.onHueDown.bind(this)
     this.el.onBrightnessDown = this.onBrightnessDown.bind(this)
     this.el.refreshRaycaster = this.refreshRaycaster.bind(this)
+    this.el.generateSwatches = this.generateSwatches.bind(this)
   },
 
   refreshRaycaster: function() {
