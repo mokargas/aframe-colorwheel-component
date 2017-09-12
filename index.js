@@ -67,6 +67,8 @@ AFRAME.registerComponent('colorwheel', {
       item.position.y = this.y
       item.position.z = this.z
     }).easing(this.tweenEasing).start()
+
+    return this.tween
   },
   //Util to animate between colors. Item represents a mesh or object's material
   setColorTween: function(item, fromColor, toColor) {
@@ -75,6 +77,18 @@ AFRAME.registerComponent('colorwheel', {
       item.color.g = this.g
       item.color.b = this.b
     }).easing(this.tweenEasing).start()
+
+    return this.tween
+  },
+  //Util to rotate between rotations. Item represents a mesh
+  setRotationTween: function(item, fromRotation, toRotation) {
+    this.tween = new TWEEN.Tween(fromRotation).to(toRotation, this.tweenDuration).onUpdate(function() {
+      item.rotation.x = this.x
+      item.rotation.y = this.y
+      item.rotation.z = this.z
+    }).easing(this.tweenEasing).start()
+
+    return this.tween
   },
   init: function() {
     const that = this,
@@ -111,13 +125,13 @@ AFRAME.registerComponent('colorwheel', {
     this.el.appendChild(this.background)
 
     //Show Swatches
-    if(this.data.showSwatches) this.generateSwatches(this.data.swatches)
+    if (this.data.showSwatches) this.generateSwatches(this.data.swatches)
 
 
     //Show hex value display
     if (this.data.showHexValue) {
       let hexValueHeight = 0.1,
-          hexValueWidth = 2 * (this.data.wheelSize + padding)
+        hexValueWidth = 2 * (this.data.wheelSize + padding)
 
       this.hexValueText = document.createElement('a-entity')
 
@@ -125,12 +139,12 @@ AFRAME.registerComponent('colorwheel', {
       this.hexValueText.setAttribute('geometry', {
         primitive: 'plane',
         width: hexValueWidth - this.brightnessSliderWidth,
-        height:hexValueHeight
+        height: hexValueHeight
       })
 
       this.hexValueText.setAttribute('material', defaultMaterial)
       this.hexValueText.setAttribute('position', {
-        x: - this.brightnessSliderWidth ,
+        x: -this.brightnessSliderWidth,
         y: this.data.wheelSize + hexValueHeight,
         z: 0.0
       })
@@ -139,14 +153,14 @@ AFRAME.registerComponent('colorwheel', {
       this.hexValueText.setAttribute('text', {
         width: hexValueWidth,
         height: hexValueHeight,
-        align : 'right',
+        align: 'right',
         baseline: 'center',
         wrapCount: 20.4,
         color: '#666'
       })
 
       //Copy value to clipboard on click
-      this.hexValueText.addEventListener('click', function(){
+      this.hexValueText.addEventListener('click', function() {
         let textEl = that.hexValueText.getAttribute('text')
         copy(textEl.value)
       })
@@ -223,7 +237,6 @@ AFRAME.registerComponent('colorwheel', {
     this.bindMethods()
 
     setTimeout(() => {
-
       that.el.initColorWheel()
       that.el.initBrightnessSlider()
       that.el.refreshRaycaster()
@@ -240,14 +253,14 @@ AFRAME.registerComponent('colorwheel', {
 
     }, 5)
   },
-  generateSwatches: function(swatchData){
+  generateSwatches: function(swatchData) {
     //Generate clickable swatch elements from a given array
-    if(swatchData === undefined ) return
+    if (swatchData === undefined) return
 
     const that = this,
-          containerWidth = (this.data.wheelSize + this.padding) * 2,
-          containerHeight = 0.15,
-          swatchWidth = containerWidth/5
+      containerWidth = (this.data.wheelSize + this.padding) * 2,
+      containerHeight = 0.15,
+      swatchWidth = containerWidth / swatchData.length
 
     //create container
     this.swatchContainer = document.createElement('a-plane')
@@ -260,28 +273,34 @@ AFRAME.registerComponent('colorwheel', {
       y: -this.backgroundHeight + containerHeight,
       z: 0.03
     })
-    this.swatchContainer.setAttribute('rotation', {x: -30, y: 0, z: 0})
+    this.swatchContainer.setAttribute('rotation', {
+      x: -30,
+      y: 0,
+      z: 0
+    })
 
     swatchData.forEach(function(color, i) {
-        let swatch = document.createElement('a-plane')
+      let swatch = document.createElement('a-plane')
 
-        swatch.setAttribute('material', that.defaultMaterial)
-        swatch.setAttribute('material', 'shader', 'flat')
-        swatch.setAttribute('width', swatchWidth)
-        swatch.setAttribute('height', containerHeight)
-        swatch.setAttribute('color', color)
-        swatch.setAttribute('class', 'swatch')
-        swatch.setAttribute('position', {
-          x: -(containerWidth - swatchWidth)/2 + i * swatchWidth,
-          y:0,
-          z:0.001 //prevent z-fighting
-        })
-        that.swatchContainer.appendChild(swatch)
+      swatch.setAttribute('material', that.defaultMaterial)
+      swatch.setAttribute('material', 'shader', 'flat')
+      swatch.setAttribute('width', swatchWidth)
+      swatch.setAttribute('height', containerHeight)
+      swatch.setAttribute('color', color)
+      swatch.setAttribute('class', 'swatch')
+      swatch.setAttribute('position', {
+        x: -(containerWidth - swatchWidth) / 2 + i * swatchWidth,
+        y: 0,
+        z: 0.001 //prevent z-fighting
+      })
+      swatch.addEventListener('click', function(){
+        that.hsv = that.rgbToHsv(that.hexToRgb(color))
+        that.updateColor()
+      })
+      that.swatchContainer.appendChild(swatch)
     })
 
     this.el.appendChild(this.swatchContainer)
-
-
   },
   bindMethods: function() {
     this.el.initColorWheel = this.initColorWheel.bind(this)
@@ -483,6 +502,30 @@ AFRAME.registerComponent('colorwheel', {
     Event.emit(document.body, 'didchangecolor', eventDetail)
 
   },
+  hexToRgb: function(hex){
+    return hex.replace(/^#?([a-f\d])([a-f\d])([a-f\d])$/i
+               ,(m, r, g, b) => '#' + r + r + g + g + b + b)
+      .substring(1).match(/.{2}/g)
+      .map(x => parseInt(x, 16))
+  },
+  rgbToHsv: function (r, g, b) {
+    var max = Math.max(r, g, b);
+    var min = Math.min(r, g, b);
+    var d = max - min;
+    var h;
+    var s = (max === 0 ? 0 : d / max);
+    var v = max;
+
+    if (arguments.length === 1) { g = r.g; b = r.b; r = r.r; }
+
+    switch (max) {
+      case min: h = 0; break;
+      case r: h = (g - b) + d * (g < b ? 6 : 0); h /= 6 * d; break;
+      case g: h = (b - r) + d * 2; h /= 6 * d; break;
+      case b: h = (r - g) + d * 4; h /= 6 * d; break;
+    }
+    return {h: h, s: s, v: v};
+  },
   hsvToRgb: function(hsv) {
     var r, g, b, i, f, p, q, t;
     var h = THREE.Math.clamp(hsv.h, 0, 1);
@@ -533,7 +576,11 @@ AFRAME.registerComponent('colorwheel', {
     };
   },
   update: function(oldData) {
+    const that = this
+
     this.background.setAttribute('color', this.data.backgroundColor)
+
+
   },
   tick: function() {},
   remove: function() {},
