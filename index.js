@@ -20,6 +20,7 @@ AFRAME.registerComponent('colorwheel', {
     color: '#ffffff',
     flatShading: true,
     transparent: true,
+    shader: 'flat',
     fog: false,
     side: 'double'
   },
@@ -293,9 +294,8 @@ AFRAME.registerComponent('colorwheel', {
         y: 0,
         z: 0.001 //prevent z-fighting
       })
-      swatch.addEventListener('click', function(){
-        that.hsv = that.rgbToHsv(that.hexToRgb(color))
-        that.updateColor()
+      swatch.addEventListener('click', function() {
+        that.findPositions(color)
       })
       that.swatchContainer.appendChild(swatch)
     })
@@ -311,12 +311,10 @@ AFRAME.registerComponent('colorwheel', {
     this.el.refreshRaycaster = this.refreshRaycaster.bind(this)
     this.el.generateSwatches = this.generateSwatches.bind(this)
   },
-
   refreshRaycaster: function() {
     const raycasterEl = AFRAME.scenes[0].querySelector('[raycaster]')
     raycasterEl.components.raycaster.refreshObjects()
   },
-
   initBrightnessSlider: function() {
     /*
      * NOTE:
@@ -411,6 +409,34 @@ AFRAME.registerComponent('colorwheel', {
     colorWheel.material = material
     colorWheel.material.needsUpdate = true
   },
+  findPositions: function(color){
+    const colorWheel = this.colorWheel.getObject3D('mesh')
+    const brightnessCursor = this.brightnessCursor.getObject3D('mesh')
+    const brightnessSlider = this.brightnessSlider.getObject3D('mesh')
+
+    let rgb = this.hexToRgb(color)
+    this.hsv = this.rgbToHsv(rgb.r, rgb.g, rgb.b)
+
+    let angle = this.hsv.h * 2 * Math.PI,
+        radius = this.hsv.s * this.data.wheelSize
+
+    let x = radius * Math.cos(angle),
+        y = radius * Math.sin(angle),
+        z = colorWheel.position.z
+
+    let colorPosition = new THREE.Vector3(x, y, z)
+    colorWheel.localToWorld(colorPosition)
+    //We can reuse hueDown for this
+    this.onHueDown(colorPosition)
+
+    //Need to do the reverse of onbrightnessdown
+    let offset =  this.hsv.v *  this.brightnessSliderHeight
+    let bY = offset - this.brightnessSliderHeight
+    let brightnessPosition = new THREE.Vector3(0, bY, 0)
+    this.setPositionTween(brightnessCursor, brightnessCursor.position, brightnessPosition)
+    colorWheel.material.uniforms['brightness'].value = this.hsv.v
+
+  },
   onBrightnessDown: function(position) {
     const brightnessSlider = this.brightnessSlider.getObject3D('mesh')
     const brightnessCursor = this.brightnessCursor.getObject3D('mesh')
@@ -489,7 +515,6 @@ AFRAME.registerComponent('colorwheel', {
     //showHexValue set to true, update text
     if (this.data.showHexValue) this.hexValueText.setAttribute('text', 'value', hex)
 
-
     //Notify listeners the color has changed.
     let eventDetail = {
       style: color,
@@ -502,13 +527,18 @@ AFRAME.registerComponent('colorwheel', {
     Event.emit(document.body, 'didchangecolor', eventDetail)
 
   },
-  hexToRgb: function(hex){
-    return hex.replace(/^#?([a-f\d])([a-f\d])([a-f\d])$/i
-               ,(m, r, g, b) => '#' + r + r + g + g + b + b)
+  hexToRgb: function(hex) {
+    let rgb = hex.replace(/^#?([a-f\d])([a-f\d])([a-f\d])$/i, (m, r, g, b) => '#' + r + r + g + g + b + b)
       .substring(1).match(/.{2}/g)
       .map(x => parseInt(x, 16))
+
+    return {
+      r: rgb[0],
+      g: rgb[1],
+      b: rgb[2]
+    }
   },
-  rgbToHsv: function (r, g, b) {
+  rgbToHsv: function(r, g, b) {
     var max = Math.max(r, g, b);
     var min = Math.min(r, g, b);
     var d = max - min;
@@ -516,15 +546,34 @@ AFRAME.registerComponent('colorwheel', {
     var s = (max === 0 ? 0 : d / max);
     var v = max;
 
-    if (arguments.length === 1) { g = r.g; b = r.b; r = r.r; }
+    if (arguments.length === 1) {
+      g = r.g;
+      b = r.b;
+      r = r.r;
+    }
 
     switch (max) {
-      case min: h = 0; break;
-      case r: h = (g - b) + d * (g < b ? 6 : 0); h /= 6 * d; break;
-      case g: h = (b - r) + d * 2; h /= 6 * d; break;
-      case b: h = (r - g) + d * 4; h /= 6 * d; break;
+      case min:
+        h = 0;
+        break;
+      case r:
+        h = (g - b) + d * (g < b ? 6 : 0);
+        h /= 6 * d;
+        break;
+      case g:
+        h = (b - r) + d * 2;
+        h /= 6 * d;
+        break;
+      case b:
+        h = (r - g) + d * 4;
+        h /= 6 * d;
+        break;
     }
-    return {h: h, s: s, v: v};
+    return {
+      h: h,
+      s: s,
+      v: v / 255
+    };
   },
   hsvToRgb: function(hsv) {
     var r, g, b, i, f, p, q, t;
@@ -577,10 +626,7 @@ AFRAME.registerComponent('colorwheel', {
   },
   update: function(oldData) {
     const that = this
-
     this.background.setAttribute('color', this.data.backgroundColor)
-
-
   },
   tick: function() {},
   remove: function() {},
