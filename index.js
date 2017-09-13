@@ -294,10 +294,8 @@ AFRAME.registerComponent('colorwheel', {
         y: 0,
         z: 0.001 //prevent z-fighting
       })
-      swatch.addEventListener('click', function() {
-        that.findPositions(color)
-      })
-      //that.swatchContainer.appendChild(swatch)
+      swatch.addEventListener('click', () => that.findPositions(color))
+      that.swatchContainer.appendChild(swatch)
     }
 
     this.el.appendChild(this.swatchContainer)
@@ -626,32 +624,7 @@ AFRAME.registerComponent('colorwheel', {
   },
   update: function(oldData) {
     if (!oldData) return
-    const that = this
     this.background.setAttribute('color', this.data.backgroundColor)
-
-    if (this.swatchReady) {
-      let container = this.swatchContainer.getObject3D('mesh')
-      console.log(this.swatchContainer) //Defined, Aframe element
-      console.log(container) //Undefined
-
-
-      if (this.data.showSwatches) {
-        this.setRotationTween(container.rotation, {
-          x: '-90',
-          y: 0,
-          z: 0
-        }).onUpdate(function(){
-          console.log(container.rotation)
-        })
-      } else {
-
-        this.setRotationTween(container.rotation, {
-          x: '-60',
-          y: 0,
-          z: 0
-        })
-      }
-    }
   },
   tick: function() {},
   remove: function() {},
