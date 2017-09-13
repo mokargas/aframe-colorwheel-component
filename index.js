@@ -58,7 +58,7 @@ AFRAME.registerComponent('colorwheel', {
     },
     swatches: {
       type: 'array',
-      default: ['#000000', '#FFFFFF', '#ff0000', '#007dff', '#ffed00', '#4c881d', '#b14bff']
+      default: ['#000000', '#FFFFFF', '#ff0000', '#2aa8dc', '#ffed00', '#4c881d', '#b14bff']
     }
   },
   //Util to animate between positions. Item represents a mesh or object containing a position
