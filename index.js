@@ -4,7 +4,9 @@
  */
 
 const Event = require('./src/utils')
+
 import copy from 'copy-to-clipboard'
+import difference from 'lodash.difference'
 
 AFRAME.registerComponent('colorwheel', {
   dependencies: ['raycaster'],
@@ -90,6 +92,8 @@ AFRAME.registerComponent('colorwheel', {
     const that = this,
       padding = this.padding,
       defaultMaterial = this.defaultMaterial
+
+      this.swatchReady = false
 
     //Background color of this interface
     //TODO: Expose sizing for deeper customisation?
@@ -252,28 +256,40 @@ AFRAME.registerComponent('colorwheel', {
     //Generate clickable swatch elements from a given array
     if (swatchData === undefined) return
 
-    const
-      containerWidth = (this.data.wheelSize + this.padding) * 2,
-      containerHeight = 0.15,
-      swatchWidth = containerWidth / swatchData.length
+    const containerWidth = (this.data.wheelSize + this.padding) * 2,
+          containerHeight = 0.15,
+          swatchWidth = containerWidth / swatchData.length
 
     //create container
-    this.swatchContainer = document.createElement('a-plane')
-    this.swatchContainer.setAttribute('width', containerWidth)
-    this.swatchContainer.setAttribute('height', containerHeight)
-    this.swatchContainer.setAttribute('material', this.defaultMaterial)
-    this.swatchContainer.setAttribute('position', {
-      x: 0,
-      y: -this.backgroundHeight + containerHeight,
-      z: 0.03
-    })
+    if(this.swatchContainer === undefined){
+      this.swatchContainer = document.createElement('a-plane')
+      this.swatchContainer.setAttribute('width', containerWidth)
+      this.swatchContainer.setAttribute('height', containerHeight)
+      this.swatchContainer.setAttribute('material', this.defaultMaterial)
+      this.swatchContainer.setAttribute('position', {
+        x: 0,
+        y: -this.backgroundHeight + containerHeight,
+        z: 0.03
+      })
 
-    //Give swatch panel a rakish angle
-    this.swatchContainer.setAttribute('rotation', {
-      x: -30,
-      y: 0,
-      z: 0
-    })
+      //Give swatch panel a rakish angle
+      this.swatchContainer.setAttribute('rotation', {
+        x: -30,
+        y: 0,
+        z: 0
+      })
+      this.swatchContainer.addEventListener('loaded', function(){ this.swatchReady = true}.bind(this))
+      this.el.appendChild(this.swatchContainer)
+    }
+
+    //Check if this is an 'update'
+    if(this.swatchReady){
+      if(this.swatchContainer.el.children !== undefined)
+      console.debug('has kids already')
+      for(let c = 0; c < swatchMesh.children.length; c++){
+        swatchMesh.remove(swatchMesh.children[c])
+      }
+    }
 
     //Loop through swatches and create elements
     for (let i = 0; i < swatchData.length; i++) {
@@ -294,7 +310,6 @@ AFRAME.registerComponent('colorwheel', {
       this.swatchContainer.appendChild(swatch)
     }
 
-    this.el.appendChild(this.swatchContainer)
   },
   bindMethods: function() {
     this.el.generateSwatches = this.generateSwatches.bind(this)
@@ -622,6 +637,9 @@ AFRAME.registerComponent('colorwheel', {
   update: function(oldData) {
     if (!oldData) return
     if(this.data.backgroundColor !== oldData.backgroundColor) this.background.setAttribute('color', this.data.backgroundColor)
+    if(difference(oldData.swatches, this.data.swatches).length > 0 && this.data.showSwatches && this.data.swatches.filter(item => item.length === 7).length === this.data.swatches.length ){
+      this.generateSwatches(this.data.swatches)
+    }
   },
   tick: function() {},
   remove: function() {
