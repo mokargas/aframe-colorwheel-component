@@ -76,5 +76,8 @@
       "examples/build.js",
       "dist/**"
     ]
+  },
+  "dependencies": {
+    "lodash.difference": "^4.5.0"
   }
 }

@@ -16,6 +16,7 @@ For [A-Frame](https://aframe.io).
 * [Basic: Sky Changer](https://mokargas.github.io/aframe-colorwheel-component/examples/basic/index-sky.html)
 * [Basic: Prop Colorization](https://mokargas.github.io/aframe-colorwheel-component/examples/basic)
 * [Basic: Show Hex Value](https://mokargas.github.io/aframe-colorwheel-component/examples/basic/index-showhex.html)
+* [Basic: Show Swatches](https://mokargas.github.io/aframe-colorwheel-component/examples/basic/index-showswatches.html)
 
 ### API
 
@@ -27,6 +28,9 @@ For [A-Frame](https://aframe.io).
 | showSelection         | Show the color-selected circle (top left corner of UI)    |  true              |
 | selectionSize         | Size (m) of the selection circle, if enabled    |  0.10 (10cm)              |
 | showHexValue         | Show the color as a hex value (Note: currently output only). If enabled, you can click on the value to copy the contents to your clipboard on selected devices only |  false  |
+| showSwatches         | Show a collection of swatch colors, specified by the swatches property |  false  |
+| swatches         | If showSwatches is set to true, the following colors will be available |  ['#000000', '#FFFFFF', '#ff0000', '#2aa8dc', '#ffed00', '#4c881d', '#b14bff']  |
+
 
 
 ### Installation
@@ -96,6 +100,6 @@ require('aframe-colorwheel-component');
 ```
 
 #### TODO / Roadmap
-
+* Enable setting swatch colors
 * Deeper customisation (padding, background colors, shader style)
 * Interop testing

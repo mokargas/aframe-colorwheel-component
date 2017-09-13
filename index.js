@@ -4,7 +4,9 @@
  */
 
 const Event = require('./src/utils')
+
 import copy from 'copy-to-clipboard'
+import difference from 'lodash.difference'
 
 AFRAME.registerComponent('colorwheel', {
   dependencies: ['raycaster'],
@@ -15,6 +17,14 @@ AFRAME.registerComponent('colorwheel', {
     h: 0.0,
     s: 0.0,
     v: 1.0
+  },
+  defaultMaterial: {
+    color: '#ffffff',
+    flatShading: true,
+    transparent: true,
+    shader: 'flat',
+    fog: false,
+    side: 'double'
   },
   color: '#ffffff',
   schema: {
@@ -43,34 +53,22 @@ AFRAME.registerComponent('colorwheel', {
     showHexValue: {
       type: 'boolean',
       default: false
+    },
+    showSwatches: {
+      type: 'boolean',
+      default: false
+    },
+    swatches: {
+      type: 'array',
+      default: ['#000000', '#FFFFFF', '#ff0000', '#2aa8dc', '#ffed00', '#4c881d', '#b14bff']
     }
-  },
-  //Util to animate between positions. Item represents a mesh or object containing a position
-  setPositionTween: function(item, fromPosition, toPosition) {
-    this.tween = new TWEEN.Tween(fromPosition).to(toPosition, this.tweenDuration).onUpdate(function() {
-      item.position.x = this.x
-      item.position.y = this.y
-      item.position.z = this.z
-    }).easing(this.tweenEasing).start()
-  },
-  //Util to animate between colors. Item represents a mesh or object's material
-  setColorTween: function(item, fromColor, toColor) {
-    this.tween = new TWEEN.Tween(new THREE.Color(fromColor)).to(toColor, this.tweenDuration).onUpdate(function() {
-      item.color.r = this.r
-      item.color.g = this.g
-      item.color.b = this.b
-    }).easing(this.tweenEasing).start()
   },
   init: function() {
     const that = this,
       padding = this.padding,
-      defaultMaterial = {
-        color: '#ffffff',
-        flatShading: true,
-        transparent: true,
-        fog: false,
-        side: 'double'
-      }
+      defaultMaterial = this.defaultMaterial
+
+    this.swatchReady = false
 
     //Background color of this interface
     //TODO: Expose sizing for deeper customisation?
@@ -101,10 +99,24 @@ AFRAME.registerComponent('colorwheel', {
     this.background.setAttribute('side', 'double')
     this.el.appendChild(this.background)
 
+    //Show Swatches
+    this.swatchContainer = document.createElement('a-plane')
+    this.swatchContainer.setAttribute('class', 'swatch-container')
+    this.swatchContainer.setAttribute('material', this.defaultMaterial)
+    this.swatchContainer.addEventListener('loaded', this.onSwatchReady.bind(this))
+
+    //Give swatch panel a rakish angle
+    this.swatchContainer.setAttribute('rotation', {
+      x: -30,
+      y: 0,
+      z: 0
+    })
+    this.el.appendChild(this.swatchContainer)
+
     //Show hex value display
     if (this.data.showHexValue) {
-      let hexValueHeight = 0.1
-      let hexValueWidth = 2 * (this.data.wheelSize + padding)
+      let hexValueHeight = 0.1,
+        hexValueWidth = 2 * (this.data.wheelSize + padding)
 
       this.hexValueText = document.createElement('a-entity')
 
@@ -112,12 +124,12 @@ AFRAME.registerComponent('colorwheel', {
       this.hexValueText.setAttribute('geometry', {
         primitive: 'plane',
         width: hexValueWidth - this.brightnessSliderWidth,
-        height:hexValueHeight
+        height: hexValueHeight
       })
 
       this.hexValueText.setAttribute('material', defaultMaterial)
       this.hexValueText.setAttribute('position', {
-        x: - this.brightnessSliderWidth ,
+        x: -this.brightnessSliderWidth,
         y: this.data.wheelSize + hexValueHeight,
         z: 0.0
       })
@@ -126,18 +138,14 @@ AFRAME.registerComponent('colorwheel', {
       this.hexValueText.setAttribute('text', {
         width: hexValueWidth,
         height: hexValueHeight,
-        align : 'right',
+        align: 'right',
         baseline: 'center',
         wrapCount: 20.4,
         color: '#666'
       })
 
       //Copy value to clipboard on click
-      this.hexValueText.addEventListener('click', function(){
-        let textEl = that.hexValueText.getAttribute('text')
-        copy(textEl.value)
-      })
-
+      this.hexValueText.addEventListener('click', this.onHexValueClicked.bind(this))
       this.el.appendChild(this.hexValueText)
     }
 
@@ -153,7 +161,6 @@ AFRAME.registerComponent('colorwheel', {
     this.el.appendChild(this.colorWheel)
 
     //Plane for the brightness slider
-
     this.brightnessSlider = document.createElement('a-plane')
     this.brightnessSlider.setAttribute('width', this.brightnessSliderWidth)
     this.brightnessSlider.setAttribute('height', this.brightnessSliderHeight)
@@ -186,6 +193,7 @@ AFRAME.registerComponent('colorwheel', {
       cursorSegments: 32,
       cursorColor: new THREE.Color(0x000000)
     }
+
     this.colorCursorOptions.cursorMaterial = new THREE.MeshBasicMaterial({
       color: this.colorCursorOptions.cursorColor,
       transparent: true
@@ -206,49 +214,112 @@ AFRAME.registerComponent('colorwheel', {
       z: 0
     })
 
-
     //Handlers
     this.bindMethods()
 
+    //TODO: Replace setTimeout as it can be unreliable
     setTimeout(() => {
-
       that.el.initColorWheel()
       that.el.initBrightnessSlider()
       that.el.refreshRaycaster()
-
-      that.colorWheel.addEventListener('click', function(evt) {
-        if (that.data.disabled) return;
-        that.el.onHueDown(evt.detail.intersection.point)
-      });
-
-      that.brightnessSlider.addEventListener('click', function(evt) {
-        if (that.data.disabled) return;
-        that.el.onBrightnessDown(evt.detail.intersection.point)
-      });
-
+      if (that.data.showSwatches) that.el.generateSwatches(that.data.swatches)
+      that.colorWheel.addEventListener('click', this.onColorWheelClicked.bind(this))
+      that.brightnessSlider.addEventListener('click', this.onBrightnessSliderClicked.bind(this))
     }, 5)
   },
+  //Util to animate between positions. Item represents a mesh or object containing a position
+  setPositionTween: function(item, fromPosition, toPosition) {
+    this.tween = new TWEEN.Tween(fromPosition).to(toPosition, this.tweenDuration).onUpdate(function() {
+      item.position.x = this.x
+      item.position.y = this.y
+      item.position.z = this.z
+    }).easing(this.tweenEasing).start()
 
+    return this.tween
+  },
+  //Util to animate between colors. Item represents a mesh or object's material
+  setColorTween: function(item, fromColor, toColor) {
+    this.tween = new TWEEN.Tween(new THREE.Color(fromColor)).to(toColor, this.tweenDuration).onUpdate(function() {
+      item.color.r = this.r
+      item.color.g = this.g
+      item.color.b = this.b
+    }).easing(this.tweenEasing).start()
+
+    return this.tween
+  },
+  onColorWheelClicked: function(evt) {
+    if (this.data.disabled) return;
+    this.el.onHueDown(evt.detail.intersection.point)
+  },
+  onBrightnessSliderClicked: function(evt) {
+    if (this.data.disabled) return;
+    this.el.onBrightnessDown(evt.detail.intersection.point)
+  },
+  onHexValueClicked: function() {
+    copy(this.hexValueText.getAttribute('text').value)
+  },
+  generateSwatches: function(swatchData) {
+    //Generate clickable swatch elements from a given array
+    if (swatchData === undefined) return
+
+    const containerWidth = (this.data.wheelSize + this.padding) * 2,
+      containerHeight = 0.15,
+      swatchWidth = containerWidth / swatchData.length
+
+    this.swatchContainer.setAttribute('width', containerWidth)
+    this.swatchContainer.setAttribute('height', containerHeight)
+    this.swatchContainer.setAttribute('position', {
+      x: 0,
+      y: -this.backgroundHeight + containerHeight,
+      z: 0.03
+    })
+
+    //Loop through swatches and create elements
+    for (let i = 0; i < swatchData.length; i++) {
+      const color = swatchData[i]
+      let swatch = document.createElement('a-plane')
+
+      swatch.setAttribute('material', this.defaultMaterial)
+      swatch.setAttribute('width', swatchWidth)
+      swatch.setAttribute('height', containerHeight)
+      swatch.setAttribute('color', color)
+      swatch.setAttribute('class', 'swatch')
+      swatch.setAttribute('position', {
+        x: -(containerWidth - swatchWidth) / 2 + i * swatchWidth,
+        y: 0,
+        z: 0.001 //prevent z-fighting
+      })
+      swatch.addEventListener('click', this.onSwatchClicked.bind(this, color))
+      this.swatchContainer.appendChild(swatch)
+    }
+    this.el.refreshRaycaster()
+  },
   bindMethods: function() {
+    this.el.generateSwatches = this.generateSwatches.bind(this)
     this.el.initColorWheel = this.initColorWheel.bind(this)
     this.el.initBrightnessSlider = this.initBrightnessSlider.bind(this)
     this.el.updateColor = this.updateColor.bind(this)
     this.el.onHueDown = this.onHueDown.bind(this)
     this.el.onBrightnessDown = this.onBrightnessDown.bind(this)
     this.el.refreshRaycaster = this.refreshRaycaster.bind(this)
+    this.el.clearSwatches = this.clearSwatches.bind(this)
   },
-
+  onSwatchReady: function() {
+    this.swatchReady = true
+  },
+  clearSwatches: function() {
+    if (this.swatchReady) while (this.swatchContainer.firstChild) this.swatchContainer.removeChild(this.swatchContainer.firstChild)
+  },
   refreshRaycaster: function() {
     const raycasterEl = AFRAME.scenes[0].querySelector('[raycaster]')
     raycasterEl.components.raycaster.refreshObjects()
   },
-
   initBrightnessSlider: function() {
     /*
      * NOTE:
      *
      * In A-Painter, the brightness slider is actually a model submesh / element.
-     * Here we generate it using glsl here and add it to our plane material
+     * Here we generate it using GLSL and add it to our plane material
      */
 
     const vertexShader = `
@@ -272,7 +343,7 @@ AFRAME.registerComponent('colorwheel', {
         gl_FragColor = color;
       }
     `
-
+    
     let material = new THREE.ShaderMaterial({
       uniforms: {
         color1: {
@@ -337,10 +408,38 @@ AFRAME.registerComponent('colorwheel', {
     colorWheel.material = material
     colorWheel.material.needsUpdate = true
   },
+  onSwatchClicked: function(color) {
+    const colorWheel = this.colorWheel.getObject3D('mesh'),
+          brightnessCursor = this.brightnessCursor.getObject3D('mesh'),
+          brightnessSlider = this.brightnessSlider.getObject3D('mesh')
+
+    let rgb = this.hexToRgb(color)
+    this.hsv = this.rgbToHsv(rgb.r, rgb.g, rgb.b)
+
+    let angle = this.hsv.h * 2 * Math.PI,
+      radius = this.hsv.s * this.data.wheelSize
+
+    let x = radius * Math.cos(angle),
+      y = radius * Math.sin(angle),
+      z = colorWheel.position.z
+
+    let colorPosition = new THREE.Vector3(x, y, z)
+    colorWheel.localToWorld(colorPosition)
+    //We can reuse hueDown for this
+    this.onHueDown(colorPosition)
+
+    //Need to do the reverse of onbrightnessdown
+    let offset = this.hsv.v * this.brightnessSliderHeight
+    let bY = offset - this.brightnessSliderHeight
+    let brightnessPosition = new THREE.Vector3(0, bY, 0)
+    this.setPositionTween(brightnessCursor, brightnessCursor.position, brightnessPosition)
+    colorWheel.material.uniforms['brightness'].value = this.hsv.v
+
+  },
   onBrightnessDown: function(position) {
-    const brightnessSlider = this.brightnessSlider.getObject3D('mesh')
-    const brightnessCursor = this.brightnessCursor.getObject3D('mesh')
-    const colorWheel = this.colorWheel.getObject3D('mesh')
+    const brightnessSlider = this.brightnessSlider.getObject3D('mesh'),
+          brightnessCursor = this.brightnessCursor.getObject3D('mesh'),
+          colorWheel = this.colorWheel.getObject3D('mesh')
 
     brightnessSlider.updateMatrixWorld()
     brightnessSlider.worldToLocal(position)
@@ -365,8 +464,8 @@ AFRAME.registerComponent('colorwheel', {
   },
   onHueDown: function(position) {
     const colorWheel = this.colorWheel.getObject3D('mesh'),
-      colorCursor = this.colorCursor.getObject3D('mesh'),
-      radius = this.data.wheelSize
+          colorCursor = this.colorCursor.getObject3D('mesh'),
+          radius = this.data.wheelSize
 
     colorWheel.updateMatrixWorld()
     colorWheel.worldToLocal(position)
@@ -388,9 +487,10 @@ AFRAME.registerComponent('colorwheel', {
   },
 
   updateColor: function() {
-    let rgb = this.hsvToRgb(this.hsv)
-    let color = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`
-    let hex = `#${new THREE.Color( color ).getHexString()}`
+
+    let rgb = this.hsvToRgb(this.hsv),
+      color = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`,
+      hex = `#${new THREE.Color( color ).getHexString()}`
 
     const selectionEl = this.selectionEl.getObject3D('mesh'),
       colorCursor = this.colorCursor.getObject3D('mesh'),
@@ -412,10 +512,8 @@ AFRAME.registerComponent('colorwheel', {
       this.setColorTween(brightnessCursor.material, brightnessCursor.material.color, new THREE.Color(0xFFFFFF))
     }
 
-    //If we have showHexValue set to true, update text
-    if (this.data.showHexValue) {
-      this.hexValueText.setAttribute('text', 'value', hex)
-    }
+    //showHexValue set to true, update text
+    if (this.data.showHexValue) this.hexValueText.setAttribute('text', 'value', hex)
 
     //Notify listeners the color has changed.
     let eventDetail = {
@@ -428,6 +526,54 @@ AFRAME.registerComponent('colorwheel', {
     Event.emit(this.el, 'changecolor', eventDetail)
     Event.emit(document.body, 'didchangecolor', eventDetail)
 
+  },
+  hexToRgb: function(hex) {
+    let rgb = hex.replace(/^#?([a-f\d])([a-f\d])([a-f\d])$/i, (m, r, g, b) => '#' + r + r + g + g + b + b)
+      .substring(1).match(/.{2}/g)
+      .map(x => parseInt(x, 16))
+
+    return {
+      r: rgb[0],
+      g: rgb[1],
+      b: rgb[2]
+    }
+  },
+  rgbToHsv: function(r, g, b) {
+    var max = Math.max(r, g, b);
+    var min = Math.min(r, g, b);
+    var d = max - min;
+    var h;
+    var s = (max === 0 ? 0 : d / max);
+    var v = max;
+
+    if (arguments.length === 1) {
+      g = r.g;
+      b = r.b;
+      r = r.r;
+    }
+
+    switch (max) {
+      case min:
+        h = 0;
+        break;
+      case r:
+        h = (g - b) + d * (g < b ? 6 : 0);
+        h /= 6 * d;
+        break;
+      case g:
+        h = (b - r) + d * 2;
+        h /= 6 * d;
+        break;
+      case b:
+        h = (r - g) + d * 4;
+        h /= 6 * d;
+        break;
+    }
+    return {
+      h: h,
+      s: s,
+      v: v / 255
+    };
   },
   hsvToRgb: function(hsv) {
     var r, g, b, i, f, p, q, t;
@@ -479,10 +625,29 @@ AFRAME.registerComponent('colorwheel', {
     };
   },
   update: function(oldData) {
-    this.background.setAttribute('color', this.data.backgroundColor)
+    if (!oldData) return
+    if (this.data.backgroundColor !== oldData.backgroundColor) this.background.setAttribute('color', this.data.backgroundColor)
+
+    let swatchesChanged = difference(oldData.swatches, this.data.swatches).length > 0
+    if (swatchesChanged && this.data.showSwatches && this.data.swatches.filter(item => item.length === 7).length === this.data.swatches.length) {
+      if (this.swatchReady) {
+        this.el.clearSwatches()
+        this.el.generateSwatches(this.data.swatches)
+      }
+    }
   },
   tick: function() {},
-  remove: function() {},
+  remove: function() {
+    const that = this
+    //Kill any listeners
+    this.colorWheel.removeEventListener('click', this.onColorWheelClicked)
+    this.brightnessSlider.removeEventListener('click', this.onBrightnessSliderClicked)
+    this.swatchContainer.removeEventListener('loaded', this.onSwatchReady)
+    this.hexValueText.removeEventListener('click', this.onHexValueClicked)
+
+    if (this.swatchContainer) this.swatchContainer.getObject3D('mesh').children.forEach(child => child.removeEventListener('click', that))
+
+  },
   pause: function() {},
   play: function() {}
 });
@@ -497,6 +662,8 @@ AFRAME.registerPrimitive('a-colorwheel', {
     showselection: 'colorwheel.showSelection',
     wheelsize: 'colorwheel.wheelSize',
     selectionsize: 'colorwheel.selectionSize',
-    showhexvalue: 'colorwheel.showHexValue'
+    showhexvalue: 'colorwheel.showHexValue',
+    showswatches: 'colorwheel.showSwatches',
+    swatches: 'colorwheel.swatches'
   }
 });
