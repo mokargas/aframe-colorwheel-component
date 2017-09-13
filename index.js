@@ -58,7 +58,7 @@ AFRAME.registerComponent('colorwheel', {
     },
     swatches: {
       type: 'array',
-      default: ['#000000', '#FFFFFF', '#ff0000', '#007dff', '#ffed00']
+      default: ['#000000', '#FFFFFF', '#ff0000', '#007dff', '#ffed00', '#4c881d', '#b14bff']
     }
   },
   //Util to animate between positions. Item represents a mesh or object containing a position
@@ -121,12 +121,6 @@ AFRAME.registerComponent('colorwheel', {
     this.el.appendChild(this.background)
 
     //Show Swatches
-    this.swatchReady = false
-    this.swatchContainer = document.createElement('a-plane')
-    this.swatchContainer.addEventListener('loaded', function() {
-      this.swatchReady = true
-    }.bind(this));
-
     if (this.data.showSwatches) this.generateSwatches(this.data.swatches)
 
     //Show hex value display
@@ -161,11 +155,7 @@ AFRAME.registerComponent('colorwheel', {
       })
 
       //Copy value to clipboard on click
-      this.hexValueText.addEventListener('click', function() {
-        let textEl = that.hexValueText.getAttribute('text')
-        copy(textEl.value)
-      })
-
+      this.hexValueText.addEventListener('click', this.onHexValueClicked.bind(this))
       this.el.appendChild(this.hexValueText)
     }
 
@@ -242,49 +232,55 @@ AFRAME.registerComponent('colorwheel', {
       that.el.initBrightnessSlider()
       that.el.refreshRaycaster()
 
-      that.colorWheel.addEventListener('click', function(evt) {
-        if (that.data.disabled) return;
-        that.el.onHueDown(evt.detail.intersection.point)
-      });
-
-      that.brightnessSlider.addEventListener('click', function(evt) {
-        if (that.data.disabled) return;
-        that.el.onBrightnessDown(evt.detail.intersection.point)
-      });
+      that.colorWheel.addEventListener('click', this.onColorWheelClicked.bind(this))
+      that.brightnessSlider.addEventListener('click', this.onBrightnessSliderClicked.bind(this))
 
     }, 5)
+  },
+  onColorWheelClicked: function(evt){
+    if (this.data.disabled) return;
+    this.el.onHueDown(evt.detail.intersection.point)
+  },
+  onBrightnessSliderClicked: function(evt){
+    if (this.data.disabled) return;
+    this.el.onBrightnessDown(evt.detail.intersection.point)
+  },
+  onHexValueClicked: function(){
+    copy(this.hexValueText.getAttribute('text').value)
   },
   generateSwatches: function(swatchData) {
     //Generate clickable swatch elements from a given array
     if (swatchData === undefined) return
 
-    const that = this,
+    const
       containerWidth = (this.data.wheelSize + this.padding) * 2,
       containerHeight = 0.15,
       swatchWidth = containerWidth / swatchData.length
 
     //create container
+    this.swatchContainer = document.createElement('a-plane')
     this.swatchContainer.setAttribute('width', containerWidth)
     this.swatchContainer.setAttribute('height', containerHeight)
     this.swatchContainer.setAttribute('material', this.defaultMaterial)
-    this.swatchContainer.setAttribute('material', 'shader', 'flat')
     this.swatchContainer.setAttribute('position', {
       x: 0,
       y: -this.backgroundHeight + containerHeight,
       z: 0.03
     })
+
+    //Give swatch panel a rakish angle
     this.swatchContainer.setAttribute('rotation', {
       x: -30,
       y: 0,
       z: 0
     })
 
+    //Loop through swatches and create elements
     for (let i = 0; i < swatchData.length; i++) {
-      let color = swatchData[i]
+      const color = swatchData[i]
       let swatch = document.createElement('a-plane')
 
-      swatch.setAttribute('material', that.defaultMaterial)
-      swatch.setAttribute('material', 'shader', 'flat')
+      swatch.setAttribute('material', this.defaultMaterial)
       swatch.setAttribute('width', swatchWidth)
       swatch.setAttribute('height', containerHeight)
       swatch.setAttribute('color', color)
@@ -294,8 +290,8 @@ AFRAME.registerComponent('colorwheel', {
         y: 0,
         z: 0.001 //prevent z-fighting
       })
-      swatch.addEventListener('click', () => that.findPositions(color))
-      that.swatchContainer.appendChild(swatch)
+      swatch.addEventListener('click', this.onSwatchClicked.bind(this, color))
+      this.swatchContainer.appendChild(swatch)
     }
 
     this.el.appendChild(this.swatchContainer)
@@ -407,7 +403,7 @@ AFRAME.registerComponent('colorwheel', {
     colorWheel.material = material
     colorWheel.material.needsUpdate = true
   },
-  findPositions: function(color) {
+  onSwatchClicked: function(color) {
     const colorWheel = this.colorWheel.getObject3D('mesh')
     const brightnessCursor = this.brightnessCursor.getObject3D('mesh')
     const brightnessSlider = this.brightnessSlider.getObject3D('mesh')
@@ -486,9 +482,10 @@ AFRAME.registerComponent('colorwheel', {
   },
 
   updateColor: function() {
-    let rgb = this.hsvToRgb(this.hsv)
-    let color = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`
-    let hex = `#${new THREE.Color( color ).getHexString()}`
+
+    let rgb = this.hsvToRgb(this.hsv),
+        color = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`,
+        hex = `#${new THREE.Color( color ).getHexString()}`
 
     const selectionEl = this.selectionEl.getObject3D('mesh'),
       colorCursor = this.colorCursor.getObject3D('mesh'),
@@ -624,10 +621,19 @@ AFRAME.registerComponent('colorwheel', {
   },
   update: function(oldData) {
     if (!oldData) return
-    this.background.setAttribute('color', this.data.backgroundColor)
+    if(this.data.backgroundColor !== oldData.backgroundColor) this.background.setAttribute('color', this.data.backgroundColor)
   },
   tick: function() {},
-  remove: function() {},
+  remove: function() {
+    const that = this
+    //Kill any listeners
+    this.el.colorWheel.removeEventListener('click', this.onColorWheelClicked)
+    this.el.brightnessSlider.removeEventListener('click', this.onBrightnessSliderClicked)
+    this.hexValueText.removeEventListener('click', this.onHexValueClicked)
+
+    if(this.swatchContainer) this.swatchContainer.getObject3D('mesh').children.forEach(child => child.removeEventListener('click', that))
+
+  },
   pause: function() {},
   play: function() {}
 });
