@@ -82,13 +82,8 @@ AFRAME.registerComponent('colorwheel', {
     return this.tween
   },
   //Util to rotate between rotations. Item represents a mesh
-  setRotationTween: function(item, fromRotation, toRotation) {
-    this.tween = new TWEEN.Tween(fromRotation).to(toRotation, this.tweenDuration).onUpdate(function() {
-      item.rotation.x = this.x
-      item.rotation.y = this.y
-      item.rotation.z = this.z
-    }).easing(this.tweenEasing).start()
-
+  setRotationTween: function(fromRotation, toRotation) {
+    this.tween = new TWEEN.Tween(fromRotation).to(toRotation, this.tweenDuration).start()
     return this.tween
   },
   init: function() {
@@ -126,8 +121,13 @@ AFRAME.registerComponent('colorwheel', {
     this.el.appendChild(this.background)
 
     //Show Swatches
-    if (this.data.showSwatches) this.generateSwatches(this.data.swatches)
+    this.swatchReady = false
+    this.swatchContainer = document.createElement('a-plane')
+    this.swatchContainer.addEventListener('loaded', function() {
+      this.swatchReady = true
+    }.bind(this));
 
+    if (this.data.showSwatches) this.generateSwatches(this.data.swatches)
 
     //Show hex value display
     if (this.data.showHexValue) {
@@ -264,7 +264,6 @@ AFRAME.registerComponent('colorwheel', {
       swatchWidth = containerWidth / swatchData.length
 
     //create container
-    this.swatchContainer = document.createElement('a-plane')
     this.swatchContainer.setAttribute('width', containerWidth)
     this.swatchContainer.setAttribute('height', containerHeight)
     this.swatchContainer.setAttribute('material', this.defaultMaterial)
@@ -280,7 +279,8 @@ AFRAME.registerComponent('colorwheel', {
       z: 0
     })
 
-    swatchData.forEach(function(color, i) {
+    for (let i = 0; i < swatchData.length; i++) {
+      let color = swatchData[i]
       let swatch = document.createElement('a-plane')
 
       swatch.setAttribute('material', that.defaultMaterial)
@@ -297,19 +297,19 @@ AFRAME.registerComponent('colorwheel', {
       swatch.addEventListener('click', function() {
         that.findPositions(color)
       })
-      that.swatchContainer.appendChild(swatch)
-    })
+      //that.swatchContainer.appendChild(swatch)
+    }
 
     this.el.appendChild(this.swatchContainer)
   },
   bindMethods: function() {
+    this.el.generateSwatches = this.generateSwatches.bind(this)
     this.el.initColorWheel = this.initColorWheel.bind(this)
     this.el.initBrightnessSlider = this.initBrightnessSlider.bind(this)
     this.el.updateColor = this.updateColor.bind(this)
     this.el.onHueDown = this.onHueDown.bind(this)
     this.el.onBrightnessDown = this.onBrightnessDown.bind(this)
     this.el.refreshRaycaster = this.refreshRaycaster.bind(this)
-    this.el.generateSwatches = this.generateSwatches.bind(this)
   },
   refreshRaycaster: function() {
     const raycasterEl = AFRAME.scenes[0].querySelector('[raycaster]')
@@ -409,7 +409,7 @@ AFRAME.registerComponent('colorwheel', {
     colorWheel.material = material
     colorWheel.material.needsUpdate = true
   },
-  findPositions: function(color){
+  findPositions: function(color) {
     const colorWheel = this.colorWheel.getObject3D('mesh')
     const brightnessCursor = this.brightnessCursor.getObject3D('mesh')
     const brightnessSlider = this.brightnessSlider.getObject3D('mesh')
@@ -418,11 +418,11 @@ AFRAME.registerComponent('colorwheel', {
     this.hsv = this.rgbToHsv(rgb.r, rgb.g, rgb.b)
 
     let angle = this.hsv.h * 2 * Math.PI,
-        radius = this.hsv.s * this.data.wheelSize
+      radius = this.hsv.s * this.data.wheelSize
 
     let x = radius * Math.cos(angle),
-        y = radius * Math.sin(angle),
-        z = colorWheel.position.z
+      y = radius * Math.sin(angle),
+      z = colorWheel.position.z
 
     let colorPosition = new THREE.Vector3(x, y, z)
     colorWheel.localToWorld(colorPosition)
@@ -430,7 +430,7 @@ AFRAME.registerComponent('colorwheel', {
     this.onHueDown(colorPosition)
 
     //Need to do the reverse of onbrightnessdown
-    let offset =  this.hsv.v *  this.brightnessSliderHeight
+    let offset = this.hsv.v * this.brightnessSliderHeight
     let bY = offset - this.brightnessSliderHeight
     let brightnessPosition = new THREE.Vector3(0, bY, 0)
     this.setPositionTween(brightnessCursor, brightnessCursor.position, brightnessPosition)
@@ -625,8 +625,33 @@ AFRAME.registerComponent('colorwheel', {
     };
   },
   update: function(oldData) {
+    if (!oldData) return
     const that = this
     this.background.setAttribute('color', this.data.backgroundColor)
+
+    if (this.swatchReady) {
+      let container = this.swatchContainer.getObject3D('mesh')
+      console.log(this.swatchContainer) //Defined, Aframe element
+      console.log(container) //Undefined
+
+
+      if (this.data.showSwatches) {
+        this.setRotationTween(container.rotation, {
+          x: '-90',
+          y: 0,
+          z: 0
+        }).onUpdate(function(){
+          console.log(container.rotation)
+        })
+      } else {
+
+        this.setRotationTween(container.rotation, {
+          x: '-60',
+          y: 0,
+          z: 0
+        })
+      }
+    }
   },
   tick: function() {},
   remove: function() {},
