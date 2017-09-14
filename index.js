@@ -60,10 +60,10 @@ AFRAME.registerComponent('colorwheel', {
     },
     swatches: {
       type: 'array',
-      default: ['#000000', '#FFFFFF', '#ff0000', '#2aa8dc', '#ffed00', '#4c881d', '#b14bff']
+      default: ['#000000', '#FFFFFF', '#ff0045', '#2aa8dc', '#ffed00', '#4c881d', '#b14bff']
     }
   },
-  
+
   init: function() {
     const that = this,
       padding = this.padding,
